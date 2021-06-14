@@ -320,3 +320,169 @@ SELECT *
 		LEFT JOIN `additional_services`
 			ON b_a.id_additional_services = additional_services.id;
             
+/* 51) Соединение таблиц lease_agreement, lease_agreement_to_additional_services и additional_services. К каждой записи таблицы additional_services
+ подбирается запись из таблицы lease_agreement.*/
+SELECT *
+	FROM `lease_agreement`
+		RIGHT JOIN `lease_agreement_to_additional_services` l_a
+			ON lease_agreement.id = l_a.id_lease_agreement
+		RIGHT JOIN `additional_services`
+			ON l_a.id_additional_services = additional_services.id;
+
+/* 52) Соединение таблиц cars, options_to_cars и options. К каждой записи таблицы cars подбирается запись из таблицы options.*/
+SELECT *
+	FROM `cars`
+		LEFT JOIN `options_to_cars` o
+			ON cars.id = o.id_cars
+		LEFT JOIN `options`
+			ON o.id_options = options.id;
+            
+/* 53) Соединение таблиц staff, positions. Возращаются все общие записи.*/
+SELECT *
+	FROM `staff`
+		JOIN `positions` 
+			ON staff.id_positions = positions.id;
+
+/* 54) Соединение таблиц technical_maintenance, cars, cars_to_defects, defects. Возращаются все общие записи.*/
+SELECT *
+	FROM `technical_maintenance`
+		JOIN `cars`
+			ON technical_maintenance.id_cars = cars.id
+		JOIN `cars_to_defects` d
+			ON cars.id = d.id_cars
+		JOIN `defects`
+			ON d.id_defects = defects.id;
+            
+/* 55) Соединение таблиц technical_maintenance, cars, cars_to_defects, defects. К каждой записи таблицы cars подбирается запись
+ из таблицы technical_maintenance и из таблицы defects.*/
+SELECT *
+	FROM `technical_maintenance`
+		RIGHT JOIN `cars`
+			ON technical_maintenance.id_cars = cars.id
+		JOIN `cars_to_defects` d
+			ON cars.id = d.id_cars
+		JOIN `defects`
+			ON d.id_defects = defects.id;
+
+/* 56) Соединение таблиц technical_maintenance, cars, cars_to_defects, defects. К каждой записи таблицы defects подбирается запись
+ из таблицы technical_maintenance и из таблицы cars.*/
+SELECT *
+	FROM `technical_maintenance`
+		JOIN `cars`
+			ON technical_maintenance.id_cars = cars.id
+		JOIN `cars_to_defects` d
+			ON cars.id = d.id_cars
+		RIGHT JOIN `defects`
+			ON d.id_defects = defects.id;
+            
+/* 57) Соединение таблиц lease_agreement, cars, lease_agreement_to_additional_services, additional_services. Возращаются все общие записи.*/       
+SELECT *
+	FROM `lease_agreement`
+		JOIN `cars` cars
+			ON lease_agreement.id_cars = cars.id
+		JOIN `lease_agreement_to_additional_services` l_a
+			ON lease_agreement.id = l_a.id_lease_agreement
+		JOIN `additional_services`
+			ON l_a.id_additional_services = additional_services.id;
+		
+ /* 58) Соединение таблиц lease_agreement, cars, lease_agreement_to_additional_services, additional_services. К каждой записи таблицы additional_services
+ подбирается общая запись из таблиц lease_agreement и cars.*/ 
+ SELECT *
+	FROM `lease_agreement`
+		JOIN `cars` cars
+			ON lease_agreement.id_cars = cars.id
+		JOIN `lease_agreement_to_additional_services` l_a
+			ON lease_agreement.id = l_a.id_lease_agreement
+		RIGHT JOIN `additional_services`
+			ON l_a.id_additional_services = additional_services.id;
+            
+------------------------------------------------------------------------------------------------------------------------
+/*59) Сортировка записей таблицы booking по возрастанию суммы залога.*/
+SELECT *
+	FROM `booking`
+		ORDER BY `pledge`;
+        
+/* 60) Сортировка записей таблицы booking по убыванию цены.*/
+SELECT *
+	FROM `lease_agreement`
+		ORDER BY `price` DESC;
+        
+/* 61) Сортировка записей таблицы lease_agreement одновременно по возрастнаию суммы залога и по убыванию цены.
+Записи сначала будут сортироваться по сумме залга, а те записи, в которых сумма залога одинаковая, будут располагаться по убыванию цены. */
+SELECT *
+	FROM `lease_agreement`
+		ORDER BY `pledge` ASC, `price` DESC;
+        
+/* 62) Сортировка записей таблицы lease_agreement.
+Записи сначала будут сортироваться по цене, а те записи, в которых цена одинаковая, будут располагаться по возрастанию суммы залога.*/
+SELECT *
+	FROM `lease_agreement`
+		ORDER BY `price` DESC, `pledge` ASC;
+
+/* 63) Записи группируются по марке автомобиля. Затем ищется количество записей в группе.*/
+SELECT `brand`, COUNT(*) as `Количество`
+	FROM `cars`
+		GROUP BY `brand`;
+        
+/* 64) Записи группируются по марке автомобиля. Затем ищется самый большой пробег в группе.*/
+SELECT `brand`, MAX(`mileage`)  as `Самый большой пробег`
+	FROM `cars`
+		GROUP BY `brand`;
+        
+/* 65) Записи группируются по названию технической характеристики автомобиля. Затем ищется наименьшее значение группы.*/
+SELECT `title`, MIN(n.meaning) as `Наименьшее значение характеристики`
+	FROM `technical_specifications`
+		LEFT JOIN `numerical_value_of_the_characteristic` n
+			ON technical_specifications.id = n.id_technical_specifications
+		GROUP BY `title`;
+	
+/* 66) Записи группируются по дате подписания. Затем ищется сумма, на которую были заключены договора аренды в этот день.*/
+SELECT `date_of_signing`, SUM(`price`) as `Сумарная выручка за день`
+	FROM `lease_agreement`
+		GROUP BY `date_of_signing`;
+        
+/* 67) Записи группируются по сумме залога. Затем ищется средняя цена в этой группе. */
+SELECT `pledge`, AVG(`price`) as `Средняя цена`
+	FROM `lease_agreement`
+		GROUP BY `pledge`;
+        
+/* 68) Записи группируются по дате подписания. Затем ищется наименьшая цена аренды автомобиля в этот день.
+Записи сортируются по возрастанию цены.*/
+SELECT `date_of_signing`, MIN(`price`) as `Наименьшая цена`
+	FROM `lease_agreement`
+		GROUP BY `date_of_signing`
+			ORDER BY `Наименьшая цена`;
+            
+/* 69) Записи группируются по марке автомобиля. Затем ищется средний пробег в группе.
+Записи сортируются по убыванию пробега.*/
+SELECT `brand`, AVG(`mileage`)  as `Средний пробег`
+	FROM `cars`
+		GROUP BY `brand`
+			ORDER BY `Средний пробег` DESC;
+            
+/* 70) Записи группируются по дате подписания. Затем ищется наименьшая сумма залога и наибольшая цена в этот день.
+Записи сначала будут сортироваться по сумме залга, а те записи, в которых сумма залога одинаковая, будут располагаться по убыванию цены. */
+SELECT `date_of_signing`, MIN(`pledge`), MAX(`price`)
+	FROM `lease_agreement`
+		GROUP BY `date_of_signing`
+		ORDER BY MIN(`pledge`) ASC, MAX(`price`) DESC;
+        
+/* 71) Записи группируются по названию сервиса. Затем ищется количество записей в группе. Выбираются только те группы, 
+в которых количество строк больше 1.*/
+SELECT `service name`, COUNT(*) as `Количество`
+	FROM `technical_maintenance`
+		GROUP BY `service name`
+			HAVING COUNT(*) > 1;
+            
+/* 72) Записи группируются по марке автомобиля. Затем ищется наименьший пробег в группе.
+Выбираются только те группы, в которых количество строк больше 40000.*/
+SELECT `brand`, MIN(`mileage`)  as `Минимальный  пробег`
+	FROM `cars`
+		GROUP BY `brand`
+			HAVING MIN(`mileage`) > 40000;
+
+/* 73) */
+
+
+
+/* 78) */
