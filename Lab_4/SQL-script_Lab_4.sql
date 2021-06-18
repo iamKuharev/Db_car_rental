@@ -330,7 +330,7 @@ SELECT *
 			ON l_a.id_additional_services = additional_services.id;
 
 /* 52) Соединение таблиц cars, options_to_cars и options. К каждой записи таблицы cars подбирается запись из таблицы options.*/
-SELECT *
+SELECT `brand`,`model`,`title`
 	FROM `cars`
 		LEFT JOIN `options_to_cars` o
 			ON cars.id = o.id_cars
@@ -366,7 +366,7 @@ SELECT *
 
 /* 56) Соединение таблиц technical_maintenance, cars, cars_to_defects, defects. К каждой записи таблицы defects подбирается запись
  из таблицы technical_maintenance и из таблицы cars.*/
-SELECT *
+SELECT `service name`, `list_of_works`, `service date`,`brand`,`model`,`title` 
 	FROM `technical_maintenance`
 		JOIN `cars`
 			ON technical_maintenance.id_cars = cars.id
@@ -376,7 +376,7 @@ SELECT *
 			ON d.id_defects = defects.id;
             
 /* 57) Соединение таблиц lease_agreement, cars, lease_agreement_to_additional_services, additional_services. Возращаются все общие записи.*/       
-SELECT *
+SELECT `contract_number`, `date_of_signing`, `brand`,`model`,`title`
 	FROM `lease_agreement`
 		JOIN `cars` cars
 			ON lease_agreement.id_cars = cars.id
@@ -481,8 +481,280 @@ SELECT `brand`, MIN(`mileage`)  as `Минимальный  пробег`
 		GROUP BY `brand`
 			HAVING MIN(`mileage`) > 40000;
 
-/* 73) */
+/* 73) Записи группируются по сумме залога. Затем ищется максимальная цена в этой группе.
+Выбираются только те группы, в которых цена больше 40000. */
+SELECT `pledge`, MAX(`price`) as `Максимальная цена`
+	FROM `lease_agreement`
+		GROUP BY `pledge`
+			HAVING MAX(`price`) > 3000;
+            
+/* 74) Записи группируются по названию сервиса. Затем ищется средний пробег в группе. Выбираются только те группы, 
+в которых средний пробег от 27 000 до 30 000.*/
+SELECT `service name`, AVG(`the_mileage_on_which_it_was_served`) as `Средний пробег`
+	FROM `technical_maintenance`
+		GROUP BY `service name`
+			HAVING AVG(`the_mileage_on_which_it_was_served`) BETWEEN 27000 AND 30000;
+            
+/* 75) Записи группируются по дате подписания. Затем ищется наименьшая сумма, на которую были заключены договора аренды в этот день.
+Выбираются только те группы кроме тех, у которых цена не равна 3500 и 5000.*/
+SELECT `date_of_signing`, MIN(`price`) as `Сумарная выручка за день`
+	FROM `lease_agreement`
+		GROUP BY `date_of_signing`
+			HAVING MIN(`price`) NOT IN(3500, 5000);
+
+/* 76) Записи группируются по названию сервиса. Затем ищется последний год, в котором обращались в сервис.
+Выбираются только те группы кроме тех, у которых последний год обращения был в 2018 или 2020.*/
+SELECT `service name`, MAX(EXTRACT(YEAR from `service date`)) as `Год`
+	FROM `technical_maintenance`
+		GROUP BY `service name`
+			HAVING MAX(EXTRACT(YEAR from `service date`)) IN(2018, 2020);
+
+/* 77) Записи группируются по сумме залога. Затем ищется средняя цена в этой группе.
+Выбираются только те группы, в которых цена от 4 000 до 5 000 или больше 6 000. 
+Записи сортируются по возрастанию цены. */
+SELECT `pledge`, AVG(`price`) as `Средняя цена`
+	FROM `lease_agreement`
+		GROUP BY `pledge`
+			HAVING (AVG(`price`) BETWEEN 4000 AND 5000) OR (AVG(`price`) > 6000)
+				ORDER BY AVG(`price`);
+                
+/* 78) Записи группируются по дате подписания. Затем ищется наименьшая сумма залога.
+Выбираются только те группы, в которых сумма залога не находится в диапазоне от 8 000 до 10 000. Записи сортируются по сумме залога. */
+SELECT `date_of_signing`, MIN(`pledge`)
+	FROM `lease_agreement`
+		GROUP BY `date_of_signing`
+			HAVING NOT MIN(`pledge`) BETWEEN 8000 AND 10000
+				ORDER BY MIN(`pledge`) DESC;
+
+----------------------------------------------------------------------------------------------------------------------------
+/* 79)  Объединяются все записи из таблиц additional_services, options в одну. */
+ SELECT `title`, `description` 
+	FROM `additional_services` 
+UNION ALL 	
+SELECT `title`, `description` 
+	FROM `options`;
+
+/* 80) Объединяются все записи из таблиц additional_services, technical_specifications в одну. Из таблицы technical_specifications
+выбираются записи, которые не содержут цифр. */
+ SELECT `title`, `description` 
+	FROM `additional_services` 
+UNION ALL 	
+SELECT `title`, `description` 
+	FROM `technical_specifications`
+		  WHERE `title` NOT RLIKE '[0-9]';
+
+/* 81) Объединяются уникальные записи из таблиц additional_services, options в одну. */
+SELECT `pledge`, `payment_method` 
+	FROM `lease_agreement` 
+UNION  	
+SELECT `pledge`, `payment_method` 
+	FROM `booking`;
+
+----------------------------------------------------------------------------------------------------------------------------
+
+/* 82) Поиск записей, в которых залог больше среднего.*/
+SELECT *
+	FROM `booking`
+		WHERE `pledge` > (SELECT CONVERT(AVG(`pledge`), float) FROM `booking`);
+        
+/* 83) Вернутся записи таблицы positions, если какие-то записи в таблице positions имеют значение wages больше 30 000. */
+SELECT *
+	FROM `positions` p1
+		WHERE p1.wages = ANY(
+							SELECT p2.wages
+								FROM `positions` p2
+									WHERE p2.wages > 30000
+							) ;
+
+/* 84) Вернутся записи таблицы lease_agreement, если все записи в таблице booking имеют значение pledge равное 10 000.*/
+SELECT *
+	FROM `lease_agreement` l
+		WHERE l.pledge = ALL(
+							SELECT b.pledge
+								FROM `booking` b 
+									WHERE `pledge` = 10000
+							);
+
+/* 85) Вернутся записи таблицы lease_agreement, где год выпуска автомобиля с 2017 по 2021 год. */
+SELECT *
+	FROM `booking` b
+		WHERE EXISTS (
+						SELECT `brand`
+							FROM `cars` c
+								WHERE c.id = b.id_cars AND `year_of_release` BETWEEN 2017 AND 2021
+					 );
+                     
+----------------------------------------------------------------------------------------------------------------------------
+
+/* 86) Объединение всех адресов.*/
+SELECT GROUP_CONCAT(`address`) 
+	FROM `parking`;
+    
+/* 87) Объединение всех дефектов с разделителем " - ".*/
+SELECT GROUP_CONCAT(`title` SEPARATOR ' - ') 
+	FROM `defects`;
+    
+/* 88) Объединение столбцов марка и модель. Поля складываются через пробел.*/
+SELECT CONCAT_WS(' ', `brand`, `model`)
+	FROM `cars`;
+
+----------------------------------------------------------------------------------------------------------------------------
+
+/* 89) Соединение таблиц cars, cars_to_defects и defects. Вывод записе по убыванию года выпуска, в которых пробег автомобиля меньше 50 000 и 
+в названии дефекта содержится слово 'Неисправность'. */
+SELECT *
+	FROM `cars`
+		JOIN `cars_to_defects` cd
+			ON cars.id = cd.id_cars
+		JOIN `defects`
+			ON cd.id_defects = defects.id
+		WHERE `mileage` < 50000 AND `title` LIKE '%Неисправность%'
+			ORDER BY `year_of_release`;
+
+/* 90) Поиск последних аренд автомобиля с дефектом бампера. */ 
+ SELECT *
+	FROM `lease_agreement`
+		JOIN `cars` cars
+			ON lease_agreement.id_cars = cars.id
+		JOIN `cars_to_defects` cd
+			ON cars.id = cd.id_cars
+		JOIN `defects`
+			ON cd.id_defects = defects.id
+		WHERE `title` LIKE '%бампер%'
+			ORDER BY `date_of_signing`
+				LIMIT 5;
+      
+/* 91) Количество мест на должность. */
+SELECT `title`, COUNT(*) AS `Кол-во рабочих мест`
+	FROM `staff`
+		JOIN `positions` 
+			ON staff.id_positions = positions.id
+		GROUP BY `title`
+        ORDER BY COUNT(*);
 
 
+            
+/* 92) Поиск договоров, в которых дополнительной услугой была доставка автомобиля.*/
+SELECT `contract_number`, `date_of_signing`, `id_clients`, `id_cars`, `title`
+	FROM `lease_agreement`
+		JOIN `lease_agreement_to_additional_services` l_a
+			ON lease_agreement.id = l_a.id_lease_agreement
+		JOIN `additional_services`
+			ON l_a.id_additional_services = additional_services.id
+		WHERE additional_services.title LIKE '%доставка%'
+        ORDER BY `date_of_signing`;
 
-/* 78) */
+----------------------------------------------------------------------------------------------------------------------------
+
+/* 93) Забронировать автомобиль. */
+INSERT INTO `booking` (`id`, `duration_from`, `duration_to`, `payment_method`, `pledge`, `id_cars`, `id_clients`) 
+	VALUES ('11', '2021-07-16 10:00:00', '2021-07-18 16:00:00', 'Банковская карта', '10000', '1', '1');
+
+INSERT INTO `booking_to_additional_services` (`id_booking`, `id_additional_services`) 
+	VALUES ('11', '2');
+
+/* 94) Отменить бронь*/
+DELETE FROM `booking` 
+	WHERE `duration_from` = '2021-07-16 10:00:00' AND `duration_to` = '2021-07-18 16:00:00' AND `id_clients` = 1;
+
+DELETE FROM `booking_to_additional_services` 
+	WHERE `id_booking` = '11' AND `id_additional_services` = '2';
+    
+/* 95) Изменить время брони автомобиля. */
+UPDATE `booking`
+	SET `duration_from` = '2021-07-17 10:00:00', `duration_to` = '2021-07-19 16:00:00'
+		WHERE `duration_from` = '2021-07-16 10:00:00' AND `duration_to` = '2021-07-18 16:00:00' AND `id_clients` = 1;
+
+/* 96) Поменять автомобиль. */
+UPDATE `booking`
+	SET `id_cars` = 2
+		WHERE `duration_from` = '2021-07-17 10:00:00' AND `duration_to` = '2021-07-19 16:00:00' AND `id_clients` = 1;
+
+/* 97) Изменить выбор доп. услуг.*/
+UPDATE `booking_to_additional_services`
+	SET `id_additional_services` = '3'
+		WHERE `id_booking` = '11' AND `id_additional_services` = '2';
+        
+/* 98) Отправить автомобиль на ремонт. */
+INSERT INTO `car_rental`.`technical_maintenance` (`service name`, `list_of_works`, `service date`, `the_mileage_on_which_it_was_served`, `id_cars`) 
+	VALUES ('Fit service', 'Ремонт АКПП', '2021-06-15', '80060', '10');
+    
+/* 99)	Показать арендованные/ забронированные автомобили на текущие сутки*/
+-- арендованные
+SELECT `brand`, `model`, `registration_number`, DATE_ADD(`date_of_signing`, INTERVAL `rental_duration` DAY) AS `Окончание аренды`
+	FROM `lease_agreement`
+		JOIN `cars`
+			ON lease_agreement.id_cars = cars.id
+		WHERE DATE_ADD(`date_of_signing`, INTERVAL `rental_duration` DAY) >= CURRENT_DATE() AND `date_of_signing` < CURRENT_DATE();
+
+-- забронированные
+SELECT `brand`, `model`, `registration_number`
+	FROM `booking`
+		JOIN `cars`
+			ON booking.id_cars = cars.id
+		WHERE `duration_to` >= NOW() AND `duration_from` < NOW();
+
+/* 100) Показать автомобили, которые возвращаются с аренды на текущие сутки. */
+SELECT `brand`, `model`, `registration_number`, DATE_ADD(`date_of_signing`, INTERVAL `rental_duration` DAY) AS `Окончание аренды`
+	FROM `lease_agreement`
+		JOIN `cars`
+			ON lease_agreement.id_cars = cars.id
+		WHERE DATE_ADD(`date_of_signing`, INTERVAL `rental_duration` DAY) = CURRENT_DATE();
+  
+  /* 101) Показать статистику выбираемых автомобилей. */
+SELECT *, COUNT(*) AS `quantity`
+	FROM(
+			SELECT `id_cars`, `brand`
+				FROM `lease_agreement` 
+					JOIN `cars`
+						ON lease_agreement.id_cars = cars.id
+			UNION ALL 	
+			SELECT `id_cars`, `brand`
+				FROM `booking`
+					JOIN `cars`
+						ON booking.id_cars = cars.id
+           )t
+			GROUP BY `brand`
+				ORDER BY COUNT(*) DESC;
+-----------------------------------------------------------------------------------------------------------------------------------
+        
+/* Для сотрудника за период с 2021-06-10 по 2021-06-20 сумму стоимостей договоров.*/
+SELECT `name`, `surname`, `patronymic`, SUM(`price`)
+	FROM `lease_agreement`
+		JOIN `staff` 
+			ON lease_agreement.id_staff_extradition = staff.id
+		WHERE `name` = 'Василий' AND `surname` = 'Сидоров' AND `patronymic` = 'Александрович' AND `date_of_signing` BETWEEN '2021-06-10' AND '2021-06-20'
+			GROUP BY `name`, `surname`, `patronymic`;
+        
+        
+/* Топ 5 самых популярных  опций. */
+SELECT o.id, `title`, COUNT(*)
+	FROM `cars`
+		JOIN `options_to_cars` oc
+			ON cars.id = oc.id_cars
+		JOIN `options` o
+			ON oc.id_options = o.id
+		GROUP BY `title`
+			ORDER BY COUNT(*) DESC
+				LIMIT 5;
+                
+/* Для автомобиля вывести все его характеристики. */
+SELECT `title`, `meaning` 
+	FROM `cars`
+		JOIN `cars_numerical_value` cnv
+			ON cars.id = cnv.id_cars
+		JOIN `numerical_value_of_the_characteristic` n
+			ON cnv.id_numerical_value = n.id
+		JOIN `technical_specifications` ts
+			ON n.id_technical_specifications = ts.id
+		WHERE `brand` = 'BMW' AND `model` = '5 серия' AND `registration_number` = 'М238ММ 134'
+UNION
+SELECT `title`, `meaning` 
+	FROM `cars`
+		JOIN `cars_to_letter_value` clv
+			ON cars.id = clv.id_cars
+		JOIN `letter_value_of_the_characteristic` l
+			ON clv.id_letter_value = l.id
+		JOIN `technical_specifications` ts
+			ON l.id_technical_specifications = ts.id
+		WHERE `brand` = 'BMW' AND `model` = '5 серия' AND `registration_number` = 'М238ММ 134';
