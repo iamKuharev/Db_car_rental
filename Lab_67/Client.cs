@@ -139,12 +139,49 @@ namespace lab67
             }
         }
 
-       
+        private void deleteButton_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (id > 0)
+                {
+                    DialogResult result = MessageBox.Show("Удаление брони повлечет за собой удаление связи с доп. услугами. Вы хотите продолжить?", "Предупреждение", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    if (result == DialogResult.No)
+                        return;
+
+                    using (MySqlConnection con = new MySqlConnection(connection))
+                    {
+                        using (MySqlCommand cmd = new MySqlCommand("DELETE FROM `clients` WHERE (`id` = @id)", con))
+                        {
+                            cmd.Parameters.AddWithValue("@id", id);
+
+                            con.Open();
+                            cmd.ExecuteNonQuery();
+
+                            MessageBox.Show("Клиент успешно удален.", "Сохранено", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                            GetClientRecords();
+                            ResetObjects();
+                        }
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Выберите клиента для удаления.", "Предупреждение", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+        }
+
 
         private void Client_Load(object sender, EventArgs e)
         {
             GetClientRecords();
         }
+
 
     }
 }

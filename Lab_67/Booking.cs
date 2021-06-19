@@ -143,23 +143,6 @@ namespace lab67
                         using (MySqlCommand cmd = new MySqlCommand("DELETE from booking where id = @id", con))
                         {
 
-                            using (MySqlCommand cmd1 = new MySqlCommand("DELETE FROM `booking_to_additional_services` WHERE `id_booking` = @id ", con))
-                            {
-                                DataTable dt = new DataTable();
-
-                                
-                                cmd1.CommandType = CommandType.Text;
-                                cmd1.Parameters.AddWithValue("@id", id);
-                                con.Open();
-                                using (MySqlDataReader sdr = cmd1.ExecuteReader())
-                                    dt.Load(sdr);
-                                con.Close();
-
-                                
-                                    
-                                
-
-
                                 cmd.CommandType = CommandType.Text;
                                 cmd.Parameters.AddWithValue("@id", id);
 
@@ -171,7 +154,7 @@ namespace lab67
 
                                 GetBoockingRecords();
                                 ResetObjects();
-                            }
+                           
                         }
                     }
                 }
